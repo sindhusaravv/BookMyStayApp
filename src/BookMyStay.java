@@ -1,72 +1,83 @@
-import java.util.Queue;
-import java.util.LinkedList;
+import java.util.*;
 
-class Reservation {
+// Represents a booking request
+class BookingRequest {
+    String guestName;
+    String roomType;
 
-    private String guestName;
-    private String roomType;
-
-    public Reservation(String guestName, String roomType) {
+    public BookingRequest(String guestName, String roomType) {
         this.guestName = guestName;
         this.roomType = roomType;
     }
-
-    public String getGuestName() {
-        return guestName;
-    }
-
-    public String getRoomType() {
-        return roomType;
-    }
 }
 
-class BookingRequestQueue {
+public class UseCase6RoomAllocationService {
 
-    private Queue<Reservation> requestQueue;
+    private static Queue<BookingRequest> requestQueue = new LinkedList<>();
 
-    public BookingRequestQueue() {
-        requestQueue = new LinkedList<>();
-    }
+    private static Map<String, Integer> inventory = new HashMap<>();
 
-    public void addRequest(Reservation reservation) {
-        requestQueue.offer(reservation);
-    }
+    private static Map<String, Set<String>> allocatedRooms = new HashMap<>();
 
-    public Reservation getNextRequest() {
-        return requestQueue.poll();
-    }
+    private static Set<String> assignedRoomIds = new HashSet<>();
 
-    public boolean hasPendingRequests() {
-        return !requestQueue.isEmpty();
-    }
-}
-
-public class BookMyStay {
+    private static int roomCounter = 1;
 
     public static void main(String[] args) {
 
-        System.out.println("Booking Request Queue");
+        inventory.put("Single", 2);
+        inventory.put("Double", 2);
+        inventory.put("Suite", 1);
 
-        BookingRequestQueue bookingQueue = new BookingRequestQueue();
+        allocatedRooms.put("Single", new HashSet<>());
+        allocatedRooms.put("Double", new HashSet<>());
+        allocatedRooms.put("Suite", new HashSet<>());
 
-        Reservation r1 = new Reservation("Abhi", "Single");
-        Reservation r2 = new Reservation("Subha", "Double");
-        Reservation r3 = new Reservation("Vannathi", "Suite");
+        requestQueue.add(new BookingRequest("Alice", "Single"));
+        requestQueue.add(new BookingRequest("Bob", "Double"));
+        requestQueue.add(new BookingRequest("Charlie", "Single"));
+        requestQueue.add(new BookingRequest("David", "Suite"));
+        requestQueue.add(new BookingRequest("Eva", "Suite")); // This will fail due to inventory
 
-        bookingQueue.addRequest(r1);
-        bookingQueue.addRequest(r2);
-        bookingQueue.addRequest(r3);
+        processBookings();
+    }
 
-        while (bookingQueue.hasPendingRequests()) {
+    public static void processBookings() {
+        while (!requestQueue.isEmpty()) {
+            BookingRequest request = requestQueue.poll(); // FIFO
+            String roomType = request.roomType;
 
-            Reservation r = bookingQueue.getNextRequest();
+            System.out.println("\nProcessing booking for: " + request.guestName);
 
-            System.out.println(
-                    "Processing booking for Guest: "
-                            + r.getGuestName()
-                            + ", Room Type: "
-                            + r.getRoomType()
-            );
+            if (!inventory.containsKey(roomType) || inventory.get(roomType) == 0) {
+                System.out.println("No rooms available for type: " + roomType);
+                continue;
+            }
+
+            String roomId;
+            do {
+                roomId = roomType.substring(0,1).toUpperCase() + roomCounter++;
+            } while (assignedRoomIds.contains(roomId));
+
+            assignedRoomIds.add(roomId);
+            allocatedRooms.get(roomType).add(roomId);
+
+            inventory.put(roomType, inventory.get(roomType) - 1);
+
+            System.out.println("Reservation confirmed!");
+            System.out.println("Guest: " + request.guestName);
+            System.out.println("Room Type: " + roomType);
+            System.out.println("Room ID: " + roomId);
         }
+
+        printSummary();
+    }
+
+    public static void printSummary() {
+        System.out.println("\n=== Allocation Summary ===");
+        for (String type : allocatedRooms.keySet()) {
+            System.out.println(type + " Rooms Allocated: " + allocatedRooms.get(type));
+        }
+        System.out.println("\nRemaining Inventory: " + inventory);
     }
 }
